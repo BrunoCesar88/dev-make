@@ -3,9 +3,13 @@
  * Seed script: importa os 34 médicos ativos da planilha de controle
  * Usage: npm run seed
  */
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+config({ path: resolve(__dirname, '../.env.local') });
+
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'fs';
-import { resolve } from 'path';
 import type { SeedDoctor } from '../src/types/database';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
