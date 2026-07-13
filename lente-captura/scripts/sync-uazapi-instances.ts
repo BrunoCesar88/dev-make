@@ -67,7 +67,16 @@ async function main() {
 
   for (const remote of remoteInstances) {
     const instanceName = admin.getInstanceName(remote);
-    if (!instanceName || !remote.token) {
+    const token = admin.getInstanceToken(remote);
+
+    if (!instanceName) {
+      console.warn('⚠️ Instância sem nome, ignorada:', JSON.stringify(remote).slice(0, 120));
+      continue;
+    }
+
+    if (!token) {
+      console.warn(`⚠️ ${instanceName} sem token, ignorada`);
+      unmatched.push(`${instanceName} (sem token)`);
       continue;
     }
 
@@ -80,7 +89,7 @@ async function main() {
     // Fetch live status with instance token
     let connectionStatus = admin.normalizeStatus(remote);
     try {
-      const client = new UazapiClient(baseUrl, remote.token);
+      const client = new UazapiClient(baseUrl, token);
       const statusRes = await client.getStatus();
       connectionStatus = normalizeConnectionStatus(statusRes);
     } catch {
@@ -90,7 +99,7 @@ async function main() {
     const { error: updateError } = await supabase
       .from('instances')
       .update({
-        uazapi_token: remote.token,
+        uazapi_token: token,
         uazapi_base_url: baseUrl,
         connection_status: connectionStatus,
         last_status_check: new Date().toISOString(),
@@ -111,7 +120,7 @@ async function main() {
 
     if (configureWebhooks) {
       try {
-        const client = new UazapiClient(baseUrl, remote.token);
+        const client = new UazapiClient(baseUrl, token);
         const webhookUrl = `${appUrl}/api/webhook/uazapi?instance=${encodeURIComponent(doctor.instance_name)}`;
         await client.setWebhook(webhookUrl);
         await supabase
@@ -137,6 +146,16 @@ async function main() {
     console.log(`⚠️ Não encontrados no banco (${unmatched.length}):`);
     unmatched.slice(0, 10).forEach((n) => console.log(`   - ${n}`));
     if (unmatched.length > 10) console.log(`   ... e mais ${unmatched.length - 10}`);
+  if (matched === 0 && remoteInstances.length === 0) {
+    console.log('\n💡 Dicas:');
+    console.log('   - Confira UAZAPI_BASE_URL (ex: https://focus.uazapi.com)');
+    console.log('   - Confira UAZAPI_ADMIN_TOKEN no painel Uazapi');
+    console.log('   - O admin token é diferente do token de cada instância');
+  }
+
+  if (matched === 0 && remoteInstances.length > 0) {
+    console.log('\n💡 Instâncias na Uazapi mas nenhuma bateu com o banco.');
+    console.log('   Compare os nomes acima com a coluna "Name Instance" da planilha.');
   }
 }
 
