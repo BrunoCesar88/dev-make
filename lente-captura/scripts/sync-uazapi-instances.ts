@@ -146,6 +146,8 @@ async function main() {
     console.log(`⚠️ Não encontrados no banco (${unmatched.length}):`);
     unmatched.slice(0, 10).forEach((n) => console.log(`   - ${n}`));
     if (unmatched.length > 10) console.log(`   ... e mais ${unmatched.length - 10}`);
+  }
+
   if (matched === 0 && remoteInstances.length === 0) {
     console.log('\n💡 Dicas:');
     console.log('   - Confira UAZAPI_BASE_URL (ex: https://focus.uazapi.com)');
