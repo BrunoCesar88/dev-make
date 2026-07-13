@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "tsx scripts/seed-doctors.ts"
+    "seed": "tsx scripts/seed-doctors.ts",
+    "sync:uazapi": "tsx scripts/sync-uazapi-instances.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.1",
