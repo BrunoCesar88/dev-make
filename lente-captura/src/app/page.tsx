@@ -51,54 +51,60 @@ async function getStats() {
 
 export default async function DashboardPage() {
   const stats = await getStats();
+  const connectedCount = Math.max(0, stats.totalDoctors - stats.disconnectedCount);
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-500">Visão geral das conexões e leads</p>
-      </div>
+    <div className="px-8 py-10 lg:px-12">
+      <header className="mb-10">
+        <h1 className="text-[40px] font-semibold tracking-tight text-[#1d1d1f]">
+          Dashboard
+        </h1>
+        <p className="mt-1 text-[17px] text-[#86868b]">
+          Visão geral das conexões e leads
+        </p>
+      </header>
 
       {!stats.dbConnected && (
-        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <div className="mb-8 rounded-2xl border border-[#ffcc00]/30 bg-[#fffbeb] px-5 py-4 text-[14px] text-[#1d1d1f]">
           Supabase ainda não configurado. Configure as variáveis de ambiente e execute as migrations.
-          Veja o README para instruções.
         </div>
       )}
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          icon={<Users className="h-5 w-5 text-indigo-600" />}
+          icon={<Users className="h-6 w-6 text-[#0071e3]" strokeWidth={1.5} />}
           label="Médicos ativos"
           value={stats.totalDoctors}
         />
         <StatCard
-          icon={<MessageSquare className="h-5 w-5 text-emerald-600" />}
+          icon={<MessageSquare className="h-6 w-6 text-[#34c759]" strokeWidth={1.5} />}
           label="Leads capturados"
           value={stats.totalLeads}
         />
         <StatCard
-          icon={<WifiOff className="h-5 w-5 text-red-600" />}
+          icon={<WifiOff className="h-6 w-6 text-[#ff3b30]" strokeWidth={1.5} />}
           label="Desconectados"
           value={stats.disconnectedCount}
         />
         <StatCard
-          icon={<Wifi className="h-5 w-5 text-emerald-600" />}
+          icon={<Wifi className="h-6 w-6 text-[#34c759]" strokeWidth={1.5} />}
           label="Conectados"
-          value={Math.max(0, stats.totalDoctors - stats.disconnectedCount)}
+          value={connectedCount}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold text-slate-900">Conexões offline</h2>
-            <Link href="/medicos" className="text-sm text-indigo-600 hover:underline">
+        <section className="apple-card p-6 lg:p-8">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-[21px] font-semibold tracking-tight text-[#1d1d1f]">
+              Conexões offline
+            </h2>
+            <Link href="/medicos" className="apple-link text-[14px]">
               Ver todos
             </Link>
           </div>
           {stats.disconnected.length === 0 ? (
-            <p className="text-sm text-slate-500">Nenhuma conexão offline detectada</p>
+            <p className="text-[15px] text-[#86868b]">Nenhuma conexão offline detectada</p>
           ) : (
             <ul className="space-y-2">
               {stats.disconnected.slice(0, 8).map((item) => {
@@ -111,14 +117,16 @@ export default async function DashboardPage() {
                 return (
                   <li
                     key={doctor.id}
-                    className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"
+                    className="flex items-center justify-between rounded-xl bg-[#f5f5f7] px-4 py-3"
                   >
-                    <span className="text-sm font-medium">{doctor.name}</span>
-                    <div className="flex items-center gap-2">
+                    <span className="text-[15px] font-medium text-[#1d1d1f]">
+                      {doctor.name}
+                    </span>
+                    <div className="flex items-center gap-3">
                       <StatusBadge status={item.connection_status} />
                       <Link
                         href={`/medicos/${doctor.id}`}
-                        className="text-xs text-indigo-600 hover:underline"
+                        className="apple-link text-[13px] font-normal"
                       >
                         Reconectar
                       </Link>
@@ -130,32 +138,32 @@ export default async function DashboardPage() {
           )}
         </section>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold text-slate-900">Leads recentes</h2>
-            <Link href="/leads" className="text-sm text-indigo-600 hover:underline">
+        <section className="apple-card p-6 lg:p-8">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-[21px] font-semibold tracking-tight text-[#1d1d1f]">
+              Leads recentes
+            </h2>
+            <Link href="/leads" className="apple-link text-[14px]">
               Ver todos
             </Link>
           </div>
           {stats.recentLeads.length === 0 ? (
-            <p className="text-sm text-slate-500">Nenhum lead capturado ainda</p>
+            <p className="text-[15px] text-[#86868b]">Nenhum lead capturado ainda</p>
           ) : (
             <ul className="space-y-2">
               {stats.recentLeads.map((lead) => {
                 const doctor = lead.doctor as { name: string } | null;
                 return (
-                  <li key={lead.id} className="rounded-lg bg-slate-50 px-3 py-2">
+                  <li key={lead.id} className="rounded-xl bg-[#f5f5f7] px-4 py-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">
+                      <span className="text-[15px] font-medium text-[#1d1d1f]">
                         {lead.patient_name || lead.patient_phone}
                       </span>
                       {!lead.synced_to_sheets && (
-                        <span title="Não sincronizado com planilha">
-                          <AlertTriangle className="h-4 w-4 text-amber-500" />
-                        </span>
+                        <AlertTriangle className="h-4 w-4 text-[#ff9500]" />
                       )}
                     </div>
-                    <p className="text-xs text-slate-500">{doctor?.name}</p>
+                    <p className="mt-0.5 text-[13px] text-[#86868b]">{doctor?.name}</p>
                   </li>
                 );
               })}
@@ -177,10 +185,12 @@ function StatCard({
   value: number;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5">
-      <div className="mb-2">{icon}</div>
-      <div className="text-2xl font-bold text-slate-900">{value}</div>
-      <div className="text-sm text-slate-500">{label}</div>
+    <div className="apple-card p-6 transition-shadow duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)]">
+      <div className="mb-4">{icon}</div>
+      <div className="text-[48px] font-semibold leading-none tracking-tight text-[#1d1d1f]">
+        {value}
+      </div>
+      <div className="mt-2 text-[14px] text-[#86868b]">{label}</div>
     </div>
   );
 }

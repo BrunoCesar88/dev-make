@@ -21,52 +21,56 @@ export default async function LeadsPage() {
   const leads = await getLeads();
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Leads</h1>
-        <p className="text-slate-500">Todos os leads capturados via WhatsApp</p>
-      </div>
+    <div className="px-8 py-10 lg:px-12">
+      <header className="mb-10">
+        <h1 className="text-[40px] font-semibold tracking-tight text-[#1d1d1f]">Leads</h1>
+        <p className="mt-1 text-[17px] text-[#86868b]">
+          Todos os leads capturados via WhatsApp
+        </p>
+      </header>
 
       {leads.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
-          <p className="text-slate-500">
+        <div className="apple-card p-16 text-center">
+          <p className="text-[17px] text-[#86868b]">
             Nenhum lead capturado ainda. Configure os webhooks e tokens Uazapi para cada médico.
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50">
+        <div className="apple-card overflow-hidden">
+          <table className="w-full text-[14px]">
+            <thead className="border-b border-black/[0.06] bg-[#fbfbfd]">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-slate-600">Data</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-600">Paciente</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-600">Telefone</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-600">Médico</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-600">Mensagem</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-600">Planilha</th>
+                <th className="px-5 py-3.5 text-left font-medium text-[#6e6e73]">Data</th>
+                <th className="px-5 py-3.5 text-left font-medium text-[#6e6e73]">Paciente</th>
+                <th className="px-5 py-3.5 text-left font-medium text-[#6e6e73]">Telefone</th>
+                <th className="px-5 py-3.5 text-left font-medium text-[#6e6e73]">Médico</th>
+                <th className="px-5 py-3.5 text-left font-medium text-[#6e6e73]">Mensagem</th>
+                <th className="px-5 py-3.5 text-left font-medium text-[#6e6e73]">Planilha</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-black/[0.04]">
               {leads.map((lead) => {
                 const doctor = lead.doctor as { name: string } | null;
                 return (
-                  <tr key={lead.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
+                  <tr key={lead.id} className="hover:bg-[#f5f5f7]/60">
+                    <td className="whitespace-nowrap px-5 py-3.5 text-[#86868b]">
                       {formatDate(lead.received_at)}
                     </td>
-                    <td className="px-4 py-3 font-medium">{lead.patient_name || '—'}</td>
-                    <td className="px-4 py-3">{formatPhone(lead.patient_phone)}</td>
-                    <td className="px-4 py-3">{doctor?.name}</td>
-                    <td className="max-w-xs truncate px-4 py-3 text-slate-600">
+                    <td className="px-5 py-3.5 font-medium text-[#1d1d1f]">
+                      {lead.patient_name || '—'}
+                    </td>
+                    <td className="px-5 py-3.5 text-[#1d1d1f]">
+                      {formatPhone(lead.patient_phone)}
+                    </td>
+                    <td className="px-5 py-3.5 text-[#1d1d1f]">{doctor?.name}</td>
+                    <td className="max-w-xs truncate px-5 py-3.5 text-[#6e6e73]">
                       {lead.message || '—'}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-5 py-3.5">
                       {lead.synced_to_sheets ? (
-                        <span className="text-emerald-600">✓</span>
+                        <span className="text-[#34c759]">✓</span>
                       ) : (
-                        <span className="text-amber-600" title={lead.sheets_sync_error || ''}>
-                          ✗
-                        </span>
+                        <span className="text-[#ff9500]">✗</span>
                       )}
                     </td>
                   </tr>

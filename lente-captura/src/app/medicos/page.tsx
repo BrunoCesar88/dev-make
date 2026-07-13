@@ -48,75 +48,73 @@ export default async function MedicosPage() {
   }, {});
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Médicos</h1>
-          <p className="text-slate-500">
-            {list.length} médicos ativos com Uazapi
-          </p>
-        </div>
-      </div>
+    <div className="px-8 py-10 lg:px-12">
+      <header className="mb-10">
+        <h1 className="text-[40px] font-semibold tracking-tight text-[#1d1d1f]">Médicos</h1>
+        <p className="mt-1 text-[17px] text-[#86868b]">
+          {list.length} médicos ativos com Uazapi
+        </p>
+      </header>
 
       {usingSeed && (
-        <div className="mb-6 rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-800">
+        <div className="mb-8 rounded-2xl border border-[#0071e3]/20 bg-[#f0f7ff] px-5 py-4 text-[14px] text-[#1d1d1f]">
           Exibindo dados da planilha de controle. Execute{' '}
-          <code className="rounded bg-indigo-100 px-1">npm run seed</code> após
-          configurar o Supabase para persistir no banco.
+          <code className="rounded bg-white/80 px-1.5 py-0.5 text-[13px]">npm run seed</code>{' '}
+          após configurar o Supabase.
         </div>
       )}
 
       {Object.entries(byManager)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([manager, docs]) => (
-          <section key={manager} className="mb-8">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <section key={manager} className="mb-10">
+            <h2 className="mb-4 text-[13px] font-semibold uppercase tracking-wider text-[#86868b]">
               {manager} ({docs.length})
             </h2>
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <table className="w-full text-sm">
-                <thead className="border-b border-slate-200 bg-slate-50">
+            <div className="apple-card overflow-hidden">
+              <table className="w-full text-[14px]">
+                <thead className="border-b border-black/[0.06] bg-[#fbfbfd]">
                   <tr>
-                    <th className="px-4 py-3 text-left font-medium text-slate-600">Médico</th>
-                    <th className="px-4 py-3 text-left font-medium text-slate-600">Instância</th>
-                    <th className="px-4 py-3 text-left font-medium text-slate-600">Telefone</th>
-                    <th className="px-4 py-3 text-left font-medium text-slate-600">Conexão</th>
-                    <th className="px-4 py-3 text-left font-medium text-slate-600">Lead</th>
-                    <th className="px-4 py-3" />
+                    <th className="px-5 py-3.5 text-left font-medium text-[#6e6e73]">Médico</th>
+                    <th className="px-5 py-3.5 text-left font-medium text-[#6e6e73]">Instância</th>
+                    <th className="px-5 py-3.5 text-left font-medium text-[#6e6e73]">Telefone</th>
+                    <th className="px-5 py-3.5 text-left font-medium text-[#6e6e73]">Conexão</th>
+                    <th className="px-5 py-3.5 text-left font-medium text-[#6e6e73]">Lead</th>
+                    <th className="px-5 py-3.5" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-black/[0.04]">
                   {docs.map((doc) => {
                     const instance = doc.instance as { connection_status?: string } | null;
                     const status = instance?.connection_status || 'disconnected';
                     const isSeed = doc.id.startsWith('seed-');
                     return (
-                      <tr key={doc.id} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 font-medium text-slate-900">{doc.name}</td>
-                        <td className="px-4 py-3 font-mono text-xs text-slate-500">
+                      <tr key={doc.id} className="transition-colors hover:bg-[#f5f5f7]/60">
+                        <td className="px-5 py-3.5 font-medium text-[#1d1d1f]">{doc.name}</td>
+                        <td className="px-5 py-3.5 font-mono text-[12px] text-[#86868b]">
                           {doc.instance_name}
                         </td>
-                        <td className="px-4 py-3 text-slate-600">
+                        <td className="px-5 py-3.5 text-[#1d1d1f]">
                           {formatPhone(doc.phone as string | null)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-3.5">
                           <StatusBadge status={status} />
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-3.5">
                           {doc.lead_enabled ? (
-                            <span className="text-emerald-600">Ativo</span>
+                            <span className="text-[#34c759] font-medium">Ativo</span>
                           ) : (
-                            <span className="text-slate-400">Off</span>
+                            <span className="text-[#86868b]">Off</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center justify-end gap-3">
                             {doc.spreadsheet_url && (
                               <a
                                 href={doc.spreadsheet_url as string}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-slate-400 hover:text-indigo-600"
+                                className="text-[#86868b] transition-colors hover:text-[#0071e3]"
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </a>
@@ -124,7 +122,7 @@ export default async function MedicosPage() {
                             {!isSeed && (
                               <Link
                                 href={`/medicos/${doc.id}`}
-                                className="flex items-center gap-1 text-indigo-600 hover:underline"
+                                className="apple-link flex items-center gap-0.5 text-[14px]"
                               >
                                 Gerenciar
                                 <ChevronRight className="h-4 w-4" />
