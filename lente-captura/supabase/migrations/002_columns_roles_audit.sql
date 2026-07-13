@@ -125,10 +125,10 @@ $$ LANGUAGE sql SECURITY DEFINER STABLE;
 -- Helper: médicos que o usuário pode acessar
 CREATE OR REPLACE FUNCTION accessible_doctor_ids()
 RETURNS SETOF UUID AS $$
-  SELECT doctor_id FROM profiles
-  WHERE id = auth.uid() AND role = 'doctor' AND doctor_id IS NOT NULL AND is_active = true
+  SELECT profiles.doctor_id FROM profiles
+  WHERE profiles.id = auth.uid() AND profiles.role = 'doctor' AND profiles.doctor_id IS NOT NULL AND profiles.is_active = true
   UNION
-  SELECT doctor_id FROM secretary_assignments sa
+  SELECT sa.doctor_id FROM secretary_assignments sa
   JOIN profiles p ON p.id = sa.secretary_id
   WHERE p.id = auth.uid() AND p.is_active = true;
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
