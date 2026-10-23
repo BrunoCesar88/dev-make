@@ -1,0 +1,134 @@
+.landing-main {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 4rem 1.5rem;
+  background: #fff;
+  color: #0a2540;
+}
+
+.landing-main::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 70vw;
+  height: 70vw;
+  max-width: 900px;
+  max-height: 900px;
+  background: radial-gradient(
+    closest-side,
+    rgba(99, 91, 255, 0.18),
+    rgba(0, 212, 255, 0.1) 45%,
+    rgba(255, 255, 255, 0) 72%
+  );
+  filter: blur(8px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.landing-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 30rem;
+}
+
+.landing-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 2.5rem;
+}
+
+.landing-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #635bff, #00d4ff);
+}
+
+.landing-title {
+  font-size: clamp(2rem, 4.2vw, 2.75rem);
+  line-height: 1.08;
+  letter-spacing: -0.022em;
+  margin: 0 0 1rem;
+  font-weight: 700;
+}
+
+.landing-accent {
+  background: linear-gradient(90deg, #635bff, #00d4ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.landing-sub {
+  font-size: 1.0625rem;
+  color: #425466;
+  margin: 0 0 2rem;
+}
+
+.landing-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.landing-input {
+  border: 1px solid #e3e8ee;
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.875rem 1rem;
+  font-size: 1rem;
+  width: 100%;
+  box-shadow: 0 1px 2px rgba(10, 37, 64, 0.04);
+}
+
+.landing-input:focus {
+  outline: 0;
+  border-color: #635bff;
+  box-shadow: 0 0 0 4px rgba(99, 91, 255, 0.18);
+}
+
+.landing-btn {
+  border: 0;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  padding: 0.875rem 1.125rem;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(180deg, #6f67ff, #544cff);
+  box-shadow: 0 4px 12px rgba(99, 91, 255, 0.28);
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.landing-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.landing-fine {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: #697386;
+}
+
+.landing-error {
+  font-size: 0.8125rem;
+  color: #c53030;
+}
+
+.landing-success {
+  padding: 1rem 1.125rem;
+  border: 1px solid #e3e8ee;
+  border-radius: 14px;
+  background: #f6f9fc;
+  font-size: 0.9375rem;
+}
