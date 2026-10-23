@@ -1,40 +1,37 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { appendLeadToSheet } from '@/lib/google-sheets/client';
-import {
-  parseWebhookPayload,
-  shouldCaptureLead,
-} from '@/lib/uazapi/webhook-parser';
+import { classifyLeadOrigin } from '@/lib/leads/classify-origin';
+import { ingestLead } from '@/lib/leads/ingest';
+import { parseWebhookPayload } from '@/lib/uazapi/webhook-parser';
 import type { UazapiWebhookPayload } from '@/types/database';
 
 export async function POST(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const instanceName = searchParams.get('instance');
+    const payload = (await request.json()) as UazapiWebhookPayload | Record<string, unknown>;
+    const parsed = parseWebhookPayload(payload);
+
+    if (!parsed) {
+      return NextResponse.json({ ok: true, skipped: true, reason: 'unparseable_payload' });
+    }
+
+    const instanceName =
+      searchParams.get('instance') ||
+      parsed.instanceName;
 
     if (!instanceName) {
       return NextResponse.json(
-        { error: 'Parâmetro instance é obrigatório' },
+        { error: 'Parâmetro instance ou body.instanceName é obrigatório' },
         { status: 400 }
       );
     }
 
-    const payload = (await request.json()) as UazapiWebhookPayload;
-    const parsed = parseWebhookPayload(payload);
-
-    if (!parsed || parsed.fromMe) {
-      return NextResponse.json({ ok: true, skipped: true });
-    }
-
-    if (!shouldCaptureLead(parsed.message)) {
-      return NextResponse.json({ ok: true, skipped: true });
-    }
-
     const supabase = await createServiceClient();
-
     const { data: doctor, error: doctorError } = await supabase
       .from('doctors')
-      .select('id, name, spreadsheet_id, lead_enabled')
+      .select(
+        'id, instance_name, lead_enabled, bio_phrase, site_phrase, manychat_phrase, social_selling_phrase'
+      )
       .eq('instance_name', instanceName)
       .single();
 
@@ -45,59 +42,48 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!doctor.lead_enabled) {
-      return NextResponse.json({ ok: true, skipped: true, reason: 'lead_disabled' });
+    const classification = classifyLeadOrigin({
+      messageText: parsed.message,
+      messageContent: parsed.messageContent,
+      fromMe: parsed.fromMe,
+      phrases: {
+        bio_phrase: doctor.bio_phrase,
+        site_phrase: doctor.site_phrase,
+        manychat_phrase: doctor.manychat_phrase,
+        social_selling_phrase: doctor.social_selling_phrase,
+      },
+    });
+
+    if (!classification.accepted) {
+      return NextResponse.json({
+        ok: true,
+        skipped: true,
+        reason: classification.reason,
+      });
     }
 
-    const { data: lead, error: leadError } = await supabase
-      .from('leads')
-      .insert({
-        doctor_id: doctor.id,
-        patient_name: parsed.patientName,
-        patient_phone: parsed.patientPhone,
-        message: parsed.message,
-        message_id: parsed.messageId,
-        chat_id: parsed.chatId,
-        source: 'whatsapp',
-        raw_payload: payload as unknown as Record<string, unknown>,
-      })
-      .select()
-      .single();
+    const result = await ingestLead(supabase, {
+      instanceName: doctor.instance_name,
+      patientName: parsed.patientName,
+      patientPhone: parsed.patientPhone,
+      message: parsed.message,
+      messageId: parsed.messageId,
+      chatId: parsed.chatId,
+      source: 'whatsapp',
+      canais: classification.origem,
+      origem: classification.origem,
+      anuncio: classification.anuncio,
+      rawPayload: parsed.rawPayload,
+    });
 
-    if (leadError) {
-      console.error('Erro ao salvar lead:', leadError);
-      return NextResponse.json({ error: leadError.message }, { status: 500 });
+    if ('error' in result && result.error) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status ?? 500 }
+      );
     }
 
-    // Sync Google Sheets
-    if (doctor.spreadsheet_id) {
-      try {
-        await appendLeadToSheet(doctor.spreadsheet_id, {
-          receivedAt: new Date().toLocaleString('pt-BR', {
-            timeZone: 'America/Sao_Paulo',
-          }),
-          patientName: parsed.patientName || '',
-          patientPhone: parsed.patientPhone,
-          message: parsed.message || '',
-          doctorName: doctor.name,
-          source: 'WhatsApp',
-        });
-
-        await supabase
-          .from('leads')
-          .update({ synced_to_sheets: true })
-          .eq('id', lead.id);
-      } catch (sheetError) {
-        const msg =
-          sheetError instanceof Error ? sheetError.message : 'Erro desconhecido';
-        await supabase
-          .from('leads')
-          .update({ sheets_sync_error: msg })
-          .eq('id', lead.id);
-      }
-    }
-
-    return NextResponse.json({ ok: true, lead_id: lead.id });
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Webhook error:', error);
     return NextResponse.json(

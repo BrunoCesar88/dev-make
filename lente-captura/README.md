@@ -2,6 +2,18 @@
 
 Sistema de gestão de captura de leads via WhatsApp (Uazapi) para médicos e clínicas. Substitui o fluxo n8n com painel web, banco Supabase e sincronização automática com Google Sheets.
 
+## Repositório
+
+```bash
+git clone https://github.com/BrunoCesar88/lente-captura.git
+cd lente-captura
+cp .env.example .env.local   # preencher (não vai no git)
+npm install
+npm run dev
+```
+
+Use o mesmo clone no Mac mini e no MacBook; sincronize com `git pull` / `git push`. O banco é o Supabase na nuvem (schema `captura` se o projeto for compartilhado com tabelas legadas em `public`).
+
 ## Médicos ativos importados
 
 **34 médicos** com status `Ativada` e API `UazApi`, extraídos da planilha de controle:
@@ -12,13 +24,23 @@ Sistema de gestão de captura de leads via WhatsApp (Uazapi) para médicos e cl�
 | Klaus  | 9  |
 | Soraya | 12 |
 
-## Funcionalidades (Fase 1)
+## Funcionalidades
 
+### Fase 1
 - Dashboard com visão geral de conexões e leads
 - Lista de médicos agrupada por gestor
-- Página por médico: status WhatsApp, QR Code para reconectar, configuração de token Uazapi
-- Webhook que recebe mensagens → salva no Supabase → append na planilha Google Sheets
+- Página por médico: status WhatsApp, QR Code, token Uazapi
+- Webhook Uazapi → Supabase → Google Sheets
 - Histórico de leads e logs de conexão
+
+### Fase 2
+- **Login** com Supabase Auth (`/login`)
+- **Perfis e permissões**: admin, médico, secretária (RLS)
+- **Edição de status** dos leads no painel
+- **Filtro por gestor** e status na lista de leads
+- **Gestão de colunas** (`/admin/colunas`) com sync para Google Sheets
+- **Auditoria** (`/admin/auditoria`) de alterações
+- **Webhook ingest** (`/api/webhook/ingest`) para migração do n8n
 
 ## Stack
 
@@ -100,10 +122,10 @@ lente-captura/
 
 ## Próximas fases
 
-- [ ] Login por médico (portal self-service)
-- [ ] Alertas quando conexão cair
-- [ ] Filtro por gestor
-- [ ] Migração completa do workflow n8n
+- [ ] Alertas quando conexão cair (email/WhatsApp)
+- [ ] Gestão de usuários no painel (criar médico/secretária)
+- [ ] Kanban visual de leads
+- [ ] Cron automático para fila de sync Sheets
 
 ## Plano Supabase gratuito
 

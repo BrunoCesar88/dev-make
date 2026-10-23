@@ -1,25 +1,53 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { StatusBadge } from './status-badge';
+import { cn } from '@/lib/utils';
+
+type ConnectMode = 'qr' | 'pairing';
 
 interface ConnectionPanelProps {
   doctorId: string;
   doctorName: string;
   initialStatus?: string;
+  defaultPhone?: string | null;
+  embedded?: boolean;
 }
 
 export function ConnectionPanel({
   doctorId,
   doctorName,
   initialStatus = 'disconnected',
+  defaultPhone,
+  embedded = false,
 }: ConnectionPanelProps) {
   const [status, setStatus] = useState(initialStatus);
+  const [mode, setMode] = useState<ConnectMode>('qr');
+  const [phone, setPhone] = useState(
+    defaultPhone?.replace(/\D/g, '') || ''
+  );
   const [qrcode, setQrcode] = useState<string | null>(null);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rawStatus, setRawStatus] = useState<string | null>(null);
+  const [checkedOnce, setCheckedOnce] = useState(false);
+
+  const applyConnectResponse = (data: {
+    status?: string;
+    qrcode?: string;
+    pairingCode?: string;
+    error?: string;
+    rawStatus?: string;
+  }) => {
+    if (data.status) setStatus(data.status);
+    if (data.qrcode) setQrcode(data.qrcode);
+    if (data.pairingCode) setPairingCode(data.pairingCode);
+    if (data.rawStatus) setRawStatus(data.rawStatus);
+    if (data.error) setError(data.error);
+  };
 
   const checkStatus = useCallback(async () => {
     setLoading(true);
@@ -27,9 +55,8 @@ export function ConnectionPanel({
     try {
       const res = await fetch(`/api/instances/${doctorId}/status`);
       const data = await res.json();
-      if (data.status) setStatus(data.status);
-      if (data.qrcode) setQrcode(data.qrcode);
-      if (data.error) setError(data.error);
+      applyConnectResponse(data);
+      setCheckedOnce(true);
     } catch {
       setError('Falha ao verificar status');
     } finally {
@@ -38,20 +65,35 @@ export function ConnectionPanel({
   }, [doctorId]);
 
   const startConnect = async () => {
+    if (mode === 'pairing' && !phone.trim()) {
+      setError('Informe o telefone com DDD para gerar o código');
+      return;
+    }
+
     setConnecting(true);
     setError(null);
+    setQrcode(null);
+    setPairingCode(null);
+
     try {
       const res = await fetch(`/api/instances/${doctorId}/connect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          mode,
+          phone: mode === 'pairing' ? phone.replace(/\D/g, '') : undefined,
+        }),
       });
       const data = await res.json();
       if (data.error) {
         setError(data.error);
       } else {
-        setStatus(data.status || 'connecting');
-        if (data.qrcode) setQrcode(data.qrcode);
+        applyConnectResponse(data);
+        if (!data.qrcode && !data.pairingCode && mode === 'qr') {
+          setError(
+            'Uazapi não retornou QR Code. Tente novamente ou use conexão por código.'
+          );
+        }
       }
     } catch {
       setError('Falha ao iniciar conexão');
@@ -60,84 +102,170 @@ export function ConnectionPanel({
     }
   };
 
-  useEffect(() => {
-    checkStatus();
-    const interval = setInterval(checkStatus, 5000);
-    return () => clearInterval(interval);
-  }, [checkStatus]);
-
   const qrSrc = qrcode?.startsWith('data:')
     ? qrcode
     : qrcode
       ? `data:image/png;base64,${qrcode}`
       : null;
 
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6">
+  const isConnected = status === 'connected';
+
+  const content = (
+    <>
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-slate-900">Conexão WhatsApp</h3>
-          <p className="text-sm text-slate-500">{doctorName}</p>
+          <h3
+            className={
+              embedded
+                ? 'text-[17px] font-semibold text-[var(--brand-text)]'
+                : 'text-[21px] font-semibold text-[var(--brand-text)]'
+            }
+          >
+            Conexão WhatsApp
+          </h3>
+          {!embedded && (
+            <p className="text-[14px] text-[var(--brand-text-tertiary)]">{doctorName}</p>
+          )}
         </div>
         <StatusBadge status={status} />
       </div>
 
-      {status === 'connected' ? (
-        <div className="flex items-center gap-3 rounded-lg bg-emerald-50 p-4 text-emerald-800">
-          <Wifi className="h-5 w-5" />
-          <span className="text-sm font-medium">WhatsApp conectado e operacional</span>
+      {!isConnected && (
+        <div className="mb-4 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setMode('qr')}
+            className={modeBtnClass(mode === 'qr')}
+          >
+            QR Code
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('pairing')}
+            className={modeBtnClass(mode === 'pairing')}
+          >
+            Código
+          </button>
+        </div>
+      )}
+
+      {isConnected ? (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 rounded-xl bg-[var(--brand-success-soft)] p-4 text-[var(--brand-success-text)]">
+            <Wifi className="h-5 w-5" />
+            <span className="text-[14px] font-medium">WhatsApp conectado e operacional</span>
+          </div>
+          <button
+            onClick={startConnect}
+            disabled={connecting || loading}
+            className="rounded-xl border border-black/[0.08] px-4 py-2.5 text-[14px] font-medium text-[var(--brand-text)] transition hover:bg-[var(--brand-bg)] disabled:opacity-50"
+          >
+            Reconectar
+          </button>
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center gap-3 rounded-lg bg-amber-50 p-4 text-amber-800">
+          <div className="flex items-center gap-3 rounded-xl bg-[var(--brand-orange-soft)] p-4 text-[var(--brand-orange-text)]">
             <WifiOff className="h-5 w-5" />
-            <span className="text-sm">
-              {status === 'connecting'
-                ? 'Aguardando escaneamento do QR Code...'
-                : 'WhatsApp desconectado — escaneie o QR Code para reconectar'}
+            <span className="text-[14px]">
+              {mode === 'pairing'
+                ? 'Informe o telefone e gere o código de pareamento'
+                : status === 'connecting'
+                  ? 'Escaneie o QR Code no WhatsApp'
+                  : 'Gere o QR Code ou use conexão por código'}
             </span>
           </div>
 
-          {qrSrc && (
-            <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6">
-              <img
-                src={qrSrc}
-                alt="QR Code WhatsApp"
-                className="h-64 w-64 rounded-lg"
+          {mode === 'pairing' && (
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-[var(--brand-text-tertiary)]">
+                Telefone do WhatsApp (com DDI + DDD)
+              </label>
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                placeholder="5511999999999"
+                className="w-full rounded-xl border border-black/[0.08] bg-white px-4 py-2.5 text-[14px] outline-none focus:border-[var(--brand-primary)]"
               />
-              <p className="text-center text-xs text-slate-500">
-                Abra o WhatsApp → Aparelhos conectados → Conectar aparelho
+            </div>
+          )}
+
+          {pairingCode && mode === 'pairing' && (
+            <div className="rounded-xl border border-[var(--brand-primary)]/20 bg-[var(--brand-primary-soft)] p-6 text-center">
+              <p className="mb-2 text-[13px] text-[var(--brand-text-tertiary)]">Código de pareamento</p>
+              <p className="font-mono text-[32px] font-semibold tracking-[0.2em] text-[var(--brand-text)]">
+                {pairingCode}
+              </p>
+              <p className="mt-3 text-[12px] text-[var(--brand-text-tertiary)]">
+                WhatsApp → Aparelhos conectados → Conectar com número de telefone
               </p>
             </div>
           )}
 
-          <div className="flex gap-2">
+          {qrSrc && mode === 'qr' && (
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-black/[0.08] bg-[var(--brand-bg)] p-6">
+              <img
+                src={qrSrc}
+                alt="QR Code WhatsApp"
+                className="h-64 w-64 rounded-xl"
+              />
+              <p className="text-center text-[12px] text-[var(--brand-text-tertiary)]">
+                WhatsApp → Aparelhos conectados → Conectar aparelho
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={startConnect}
               disabled={connecting || loading}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              className="rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-[14px] font-medium text-white transition hover:bg-[var(--brand-primary-hover)] disabled:opacity-50"
             >
-              {connecting ? 'Gerando QR...' : qrcode ? 'Atualizar QR Code' : 'Conectar WhatsApp'}
+              {connecting
+                ? 'Gerando...'
+                : mode === 'pairing'
+                  ? pairingCode
+                    ? 'Atualizar código'
+                    : 'Gerar código'
+                  : qrcode
+                    ? 'Atualizar QR Code'
+                    : 'Gerar QR Code'}
             </button>
             <button
               onClick={checkStatus}
               disabled={loading}
-              className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl border border-black/[0.08] px-4 py-2.5 text-[14px] font-medium text-[var(--brand-text)] transition hover:bg-[var(--brand-bg)] disabled:opacity-50"
             >
-              <RefreshCw className={cnIcon(loading)} />
-              Verificar
+              <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+              Verificar status
             </button>
           </div>
         </div>
       )}
 
-      {error && (
-        <p className="mt-3 text-sm text-red-600">{error}</p>
+      {rawStatus && (
+        <p className="mt-3 text-[12px] text-[var(--brand-text-tertiary)]">Status Uazapi: {rawStatus}</p>
       )}
-    </div>
+      {!checkedOnce && !isConnected && (
+        <p className="mt-2 text-[12px] text-[var(--brand-text-tertiary)]">
+          Clique em &quot;Verificar status&quot; para consultar a Uazapi.
+        </p>
+      )}
+      {error && <p className="mt-3 text-[14px] text-[#ff3b30]">{error}</p>}
+    </>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <div className="apple-card p-6 lg:p-8">{content}</div>;
 }
 
-function cnIcon(spin: boolean) {
-  return spin ? 'h-4 w-4 animate-spin' : 'h-4 w-4';
+function modeBtnClass(active: boolean) {
+  return `rounded-lg px-3 py-1.5 text-[13px] font-medium transition ${
+    active
+      ? 'bg-[var(--brand-primary)] text-[var(--brand-on-primary)]'
+      : 'bg-[var(--brand-muted-surface)] text-[var(--brand-text)] hover:bg-[var(--brand-hover)]'
+  }`;
 }

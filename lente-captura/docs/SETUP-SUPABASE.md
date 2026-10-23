@@ -18,11 +18,14 @@ Siga estes passos na ordem. Tempo estimado: 15–20 minutos.
 
 ## Passo 2 — Rodar migrations (SQL)
 
-1. No menu lateral: **SQL Editor** → **New query**
-2. Cole o conteúdo de `supabase/migrations/001_initial_schema.sql`
-3. Clique **Run** (deve aparecer "Success")
-4. Nova query → cole `supabase/migrations/002_columns_roles_audit.sql`
-5. Clique **Run**
+**Projeto Supabase dedicado ao Captura:** rode as migrations `001` … `014` em `public` (como no README).
+
+**Projeto Supabase compartilhado** (já tem tabelas legadas em `public`, ex. planilha/n8n): use o schema isolado `captura`:
+
+1. SQL Editor → `supabase/remote/01-captura-schema-install.sql` → **Run** (não altera `public.leads`, `Lente-Medicos`, etc.)
+2. **Settings** → **API** → **Exposed schemas** → adicione `captura` e salve
+
+O app usa `db: { schema: 'captura' }` nos clients Supabase.
 
 ---
 
@@ -89,13 +92,16 @@ VALUES (
 
 ---
 
-## Passo 7 — Auth no app (próxima implementação)
+## Passo 7 — Auth no app
 
-Na fase atual o painel funciona sem login (service role nas APIs).
-Na fase 2 adicionaremos:
-- Página `/login`
-- Middleware protegendo rotas
-- RLS já preparado na migration 002
+1. Crie o usuário admin (passo 6)
+2. Acesse `/login` com email e senha
+3. Rotas protegidas por middleware — webhooks permanecem públicos
+
+**Perfis:**
+- `admin` — acesso total, gestão de colunas e médicos
+- `doctor` — vê/edita leads do seu médico, reconecta WhatsApp
+- `secretary` — vê/edita leads dos médicos atribuídos em `secretary_assignments`
 
 ---
 

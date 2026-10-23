@@ -39,6 +39,77 @@ function normalizeName(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, '-');
 }
 
+/** Nomes antigos/errados na Uazapi → instance_name correto no banco */
+const INSTANCE_ALIASES: Record<string, string> = {
+  'dra-sean-lai': 'dr-sean-lai',
+};
+
+function resolveDoctorInstanceName(instanceName: string): string {
+  return INSTANCE_ALIASES[normalizeName(instanceName)] ?? instanceName;
+}
+
+function instanceNameToDisplayName(instanceName: string): string {
+  return instanceName
+    .split('-')
+    .map((part, index) => {
+      const lower = part.toLowerCase();
+      if (index === 0 && (lower === 'dr' || lower === 'dra')) {
+        return lower === 'dra' ? 'Dra.' : 'Dr.';
+      }
+      if (part.includes('.')) return part;
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(' ')
+    .replace(/\bDr \./g, 'Dr.')
+    .replace(/\bDra \./g, 'Dra.');
+}
+
+function shouldSkipAutoImport(instanceName: string): boolean {
+  const normalized = instanceName.trim().toLowerCase();
+  return (
+    normalized === 'teste auto' ||
+    normalized === 'teste-auto' ||
+    normalized.startsWith('teste-')
+  );
+}
+
+async function importDoctorFromUazapi(
+  instanceName: string,
+  token: string,
+  connectionStatus: string
+) {
+  const { data: doctor, error: doctorError } = await supabase
+    .from('doctors')
+    .insert({
+      instance_name: instanceName,
+      name: instanceNameToDisplayName(instanceName),
+      status: 'active',
+      lead_enabled: true,
+      api_provider: 'uazapi',
+    })
+    .select('id, instance_name, name')
+    .single();
+
+  if (doctorError || !doctor) {
+    throw new Error(doctorError?.message || 'Falha ao criar médico');
+  }
+
+  const { error: instanceError } = await supabase.from('instances').insert({
+    doctor_id: doctor.id,
+    uazapi_token: token,
+    uazapi_base_url: baseUrl,
+    connection_status: connectionStatus,
+    last_status_check: new Date().toISOString(),
+  });
+
+  if (instanceError) {
+    await supabase.from('doctors').delete().eq('id', doctor.id);
+    throw new Error(instanceError.message);
+  }
+
+  return doctor;
+}
+
 async function main() {
   console.log(`🔄 Buscando instâncias em ${baseUrl}...`);
 
@@ -62,6 +133,7 @@ async function main() {
 
   let matched = 0;
   let connected = 0;
+  let imported = 0;
   let webhooks = 0;
   const unmatched: string[] = [];
 
@@ -80,13 +152,6 @@ async function main() {
       continue;
     }
 
-    const doctor = doctorByName.get(normalizeName(instanceName));
-    if (!doctor) {
-      unmatched.push(instanceName);
-      continue;
-    }
-
-    // Fetch live status with instance token
     let connectionStatus = admin.normalizeStatus(remote);
     try {
       const client = new UazapiClient(baseUrl, token);
@@ -96,18 +161,48 @@ async function main() {
       // keep status from list response
     }
 
-    const { error: updateError } = await supabase
-      .from('instances')
-      .update({
-        uazapi_token: token,
-        uazapi_base_url: baseUrl,
-        connection_status: connectionStatus,
-        last_status_check: new Date().toISOString(),
-      })
-      .eq('doctor_id', doctor.id);
+    let doctor = doctorByName.get(normalizeName(resolveDoctorInstanceName(instanceName)));
 
-    if (updateError) {
-      console.error(`❌ ${doctor.name}:`, updateError.message);
+    if (!doctor) {
+      if (shouldSkipAutoImport(instanceName)) {
+        unmatched.push(`${instanceName} (ignorada: teste)`);
+        continue;
+      }
+
+      try {
+        doctor = await importDoctorFromUazapi(
+          instanceName,
+          token,
+          connectionStatus
+        );
+        doctorByName.set(normalizeName(instanceName), doctor);
+        imported++;
+        console.log(`🆕 Importado: ${doctor.name} (${instanceName})`);
+      } catch (err) {
+        unmatched.push(
+          `${instanceName} (${err instanceof Error ? err.message : 'erro'})`
+        );
+        continue;
+      }
+    }
+
+    if (doctor) {
+      const { error: updateError } = await supabase
+        .from('instances')
+        .update({
+          uazapi_token: token,
+          uazapi_base_url: baseUrl,
+          connection_status: connectionStatus,
+          last_status_check: new Date().toISOString(),
+        })
+        .eq('doctor_id', doctor.id);
+
+      if (updateError) {
+        console.error(`❌ ${doctor.name}:`, updateError.message);
+        continue;
+      }
+    } else {
+      unmatched.push(instanceName);
       continue;
     }
 
@@ -122,7 +217,10 @@ async function main() {
       try {
         const client = new UazapiClient(baseUrl, token);
         const webhookUrl = `${appUrl}/api/webhook/uazapi?instance=${encodeURIComponent(doctor.instance_name)}`;
-        await client.setWebhook(webhookUrl);
+        await client.upsertWebhook(
+          { url: webhookUrl },
+          { instanceName: doctor.instance_name }
+        );
         await supabase
           .from('instances')
           .update({ webhook_configured: true })
@@ -140,6 +238,7 @@ async function main() {
 
   console.log('\n--- Resumo ---');
   console.log(`✅ Sincronizados: ${matched}`);
+  console.log(`🆕 Importados: ${imported}`);
   console.log(`🟢 Conectados: ${connected}`);
   if (configureWebhooks) console.log(`🔗 Webhooks: ${webhooks}`);
   if (unmatched.length) {

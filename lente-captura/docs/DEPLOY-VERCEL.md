@@ -8,8 +8,8 @@ Guia passo a passo para colocar o painel Lente online.
 
 - [x] Supabase configurado
 - [x] 34 médicos importados (`npm run seed` — já rodou na nuvem)
-- [x] Repo no GitHub: `BrunoCesar88/dev-make`
-- [x] Branch: `cursor/lente-captura-leads-9aa6`
+- [x] Repo no GitHub: `BrunoCesar88/lente-captura`
+- [x] Branch: `main`
 
 ---
 
@@ -24,16 +24,14 @@ Guia passo a passo para colocar o painel Lente online.
 ## Passo 2 — Importar projeto
 
 1. **Add New… → Project**
-2. Encontre **dev-make** → **Import**
+2. Encontre **lente-captura** → **Import**
 3. Configure:
 
 | Campo | Valor |
 |-------|-------|
 | **Framework Preset** | Next.js (detecta automaticamente) |
-| **Root Directory** | `lente-captura` ← **IMPORTANTE** |
-| **Branch** | `cursor/lente-captura-leads-9aa6` |
-
-Clique **Edit** ao lado de Root Directory e selecione `lente-captura`.
+| **Root Directory** | `.` (raiz do repo) |
+| **Branch** | `main` |
 
 ---
 

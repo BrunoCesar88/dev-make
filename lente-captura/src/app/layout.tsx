@@ -1,10 +1,17 @@
 import type { Metadata } from 'next';
-import { Sidebar } from '@/components/sidebar';
+import { Inter } from 'next/font/google';
+import { ThemeProvider } from '@/components/theme-provider';
+import { ThemeScript } from '@/components/theme-script';
 import './globals.css';
 
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
-  title: 'Lente — Captura de Leads',
-  description: 'Sistema de captura de leads via WhatsApp para médicos',
+  title: 'Lente — Captura',
+  description: 'Operação de leads via WhatsApp para médicos',
 };
 
 export default function RootLayout({
@@ -13,15 +20,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning className="light">
+    <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body
-        className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] antialiased"
+        className={`${inter.className} min-h-screen bg-[var(--brand-bg)] text-[var(--brand-text)] antialiased`}
         suppressHydrationWarning
       >
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 overflow-auto bg-[#f5f5f7]">{children}</main>
-        </div>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

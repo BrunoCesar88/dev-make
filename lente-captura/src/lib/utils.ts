@@ -1,6 +1,8 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+export { formatDate, formatDateOnly, formatDateShort, formatNowBrazilian } from '@/lib/date';
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -15,14 +17,6 @@ export function formatPhone(phone: string | null | undefined): string {
     return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 8)}-${digits.slice(8)}`;
   }
   return phone;
-}
-
-export function formatDate(date: string | null | undefined): string {
-  if (!date) return '—';
-  return new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  }).format(new Date(date));
 }
 
 export function statusLabel(status: string): string {
@@ -49,4 +43,39 @@ export function statusColor(status: string): string {
     pending: 'bg-amber-100 text-amber-800',
   };
   return colors[status] ?? 'bg-slate-100 text-slate-800';
+}
+
+/** Gera instance_name no padrão Dra-Nome-Sobrenome */
+export function suggestInstanceName(fullName: string): string {
+  const cleaned = fullName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+
+  const prefixMatch = cleaned.match(/^(Dra?a?|Dr)\.?\s*/i);
+  const prefix = prefixMatch
+    ? prefixMatch[0].toLowerCase().startsWith('dr')
+      ? prefixMatch[0].toLowerCase().startsWith('dra')
+        ? 'Dra'
+        : 'Dr'
+      : 'Dra'
+    : '';
+
+  const rest = cleaned.replace(/^(Dra?a?|Dr)\.?\s*/i, '');
+  const parts = rest.split(/\s+/).filter(Boolean);
+
+  const slug = parts
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+    .join('-');
+
+  return prefix ? `${prefix}-${slug}` : slug;
+}
+
+export function slugifyKey(label: string): string {
+  return label
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
 }

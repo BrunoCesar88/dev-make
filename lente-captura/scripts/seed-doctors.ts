@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Seed script: importa os 34 médicos ativos da planilha de controle
+ * Seed script: importa médicos da planilha de controle (data/active-doctors.json)
  * Usage: npm run seed
  */
 import { config } from 'dotenv';
@@ -26,7 +26,9 @@ async function main() {
   const seedPath = resolve(__dirname, '../data/active-doctors.json');
   const doctors = JSON.parse(readFileSync(seedPath, 'utf-8')) as SeedDoctor[];
 
-  console.log(`📋 Importando ${doctors.length} médicos ativos...`);
+  console.log(`📋 Importando ${doctors.length} médicos...`);
+
+  const statusCounts = { active: 0, inactive: 0, pending: 0 };
 
   // Gestores
   const managerNames = [...new Set(doctors.map((d) => d.manager).filter(Boolean))] as string[];
@@ -57,6 +59,9 @@ async function main() {
   for (const doc of doctors) {
     const managerId = doc.manager ? managerMap.get(doc.manager) : null;
 
+    const status = doc.status || 'active';
+    const apiProvider = doc.api === 'evoapi' ? 'evoapi' : 'uazapi';
+
     const doctorRow = {
       instance_name: doc.instance_name,
       name: doc.name,
@@ -67,9 +72,11 @@ async function main() {
       sheet_gid: doc.sheet_gid?.replace('gid=', '') || '0',
       bio_link: doc.bio_link,
       lead_enabled: doc.lead_enabled,
-      status: 'active' as const,
-      api_provider: 'uazapi',
+      status,
+      api_provider: apiProvider,
     };
+
+    statusCounts[status as keyof typeof statusCounts]++;
 
     const { data: existing } = await supabase
       .from('doctors')
@@ -115,6 +122,7 @@ async function main() {
   }
 
   console.log(`✅ Concluído: ${created} criados, ${updated} atualizados`);
+  console.log(`📊 Status: ${statusCounts.active} ativos, ${statusCounts.inactive} inativos, ${statusCounts.pending} pendentes`);
   console.log(`👥 Gestores: ${managerNames.join(', ')}`);
 }
 

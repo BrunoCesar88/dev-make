@@ -7,31 +7,70 @@ import {
   Stethoscope,
   MessageSquare,
   Settings,
+  Columns3,
+  ScrollText,
+  LogOut,
+  BarChart3,
+  Users,
 } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
+import type { Profile, UserRole } from '@/lib/auth';
 
-const nav = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/medicos', label: 'Médicos', icon: Stethoscope },
-  { href: '/leads', label: 'Leads', icon: MessageSquare },
-  { href: '/configuracoes', label: 'Configurações', icon: Settings },
+const baseNav: Array<{
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  roles?: UserRole[];
+}> = [
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'doctor'] },
+  { href: '/analytics', label: 'Analytics', icon: BarChart3, roles: ['admin', 'doctor'] },
+  { href: '/medicos', label: 'Médicos', icon: Stethoscope, roles: ['admin'] },
+  { href: '/leads', label: 'Leads', icon: MessageSquare, roles: ['admin', 'doctor', 'secretary'] },
+  { href: '/configuracoes', label: 'Configurações', icon: Settings, roles: ['admin'] },
 ];
 
-export function Sidebar() {
+const adminNav = [
+  { href: '/admin/usuarios', label: 'Usuários', icon: Users },
+  { href: '/admin/colunas', label: 'Colunas', icon: Columns3 },
+  { href: '/admin/auditoria', label: 'Auditoria', icon: ScrollText },
+];
+
+const roleLabels: Record<string, string> = {
+  admin: 'Administrador',
+  doctor: 'Médico',
+  secretary: 'Secretária',
+};
+
+export function Sidebar({ profile }: { profile: Profile | null }) {
   const pathname = usePathname();
+  const isAdmin = profile?.role === 'admin';
+  const role = profile?.role ?? 'secretary';
+
+  const nav = [
+    ...baseNav.filter((item) => !item.roles || item.roles.includes(role)),
+    ...(isAdmin ? adminNav : []),
+  ];
 
   return (
-    <aside className="flex w-[260px] shrink-0 flex-col border-r border-black/[0.06] bg-white/80 backdrop-blur-xl">
-      <div className="px-6 py-7">
-        <div className="text-[22px] font-semibold tracking-tight text-[#1d1d1f]">
-          Lente
-        </div>
-        <div className="mt-0.5 text-[13px] font-normal text-[#86868b]">
-          Captura de Leads
+    <aside className="flex w-[248px] shrink-0 flex-col border-r border-[var(--brand-border)] bg-[var(--brand-surface)]">
+      <div className="border-b border-[var(--brand-border)] px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--brand-primary)] text-[15px] font-bold text-[var(--brand-on-primary)]">
+            L
+          </div>
+          <div>
+            <div className="text-[15px] font-semibold text-[var(--brand-text)]">
+              Lente Captura
+            </div>
+            <div className="text-[11px] text-[var(--brand-text-tertiary)]">
+              Operação &amp; leads
+            </div>
+          </div>
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-0.5 px-3">
+      <nav className="flex flex-1 flex-col gap-0.5 px-3 py-4">
         {nav.map(({ href, label, icon: Icon }) => {
           const active =
             href === '/' ? pathname === '/' : pathname.startsWith(href);
@@ -40,21 +79,45 @@ export function Sidebar() {
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-normal transition-all duration-200',
+                'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
                 active
-                  ? 'bg-[#1d1d1f] text-white'
-                  : 'text-[#1d1d1f] hover:bg-[#f5f5f7]'
+                  ? 'bg-[var(--brand-primary)] text-[var(--brand-on-primary)]'
+                  : 'text-[var(--brand-text-secondary)] hover:bg-[var(--brand-hover)] hover:text-[var(--brand-text)]'
               )}
             >
-              <Icon className={cn('h-[18px] w-[18px]', active ? 'text-white' : 'text-[#86868b]')} />
+              <Icon className="h-4 w-4 shrink-0" />
               {label}
             </Link>
           );
         })}
+
       </nav>
 
-      <div className="border-t border-black/[0.06] px-6 py-4">
-        <p className="text-[12px] text-[#86868b]">34 médicos · Uazapi</p>
+      <div className="border-t border-[var(--brand-border)] px-5 py-4">
+        {profile ? (
+          <div className="space-y-3">
+            <div>
+              <p className="text-[13px] font-medium text-[var(--brand-text)]">
+                {profile.full_name || profile.email}
+              </p>
+              <p className="text-[11px] text-[var(--brand-text-tertiary)]">
+                {roleLabels[profile.role] || profile.role}
+              </p>
+            </div>
+            <ThemeToggle compact showLabel={false} />
+            <form action="/auth/logout" method="POST">
+              <button
+                type="submit"
+                className="flex items-center gap-2 text-[12px] text-[var(--brand-text-tertiary)] transition hover:text-[var(--accent-red)]"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sair
+              </button>
+            </form>
+          </div>
+        ) : (
+          <p className="text-[11px] text-[var(--brand-text-tertiary)]">WhatsApp · Uazapi</p>
+        )}
       </div>
     </aside>
   );

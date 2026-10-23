@@ -1,41 +1,47 @@
 import { NextResponse } from 'next/server';
+import { AuthError, requireDoctorAccess } from '@/lib/auth';
 import { createServiceClient } from '@/lib/supabase/server';
 import {
   UazapiClient,
   normalizeConnectionStatus,
   extractQrCode,
+  extractPairingCode,
+  extractRawStatus,
 } from '@/lib/uazapi/client';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const supabase = await createServiceClient();
-
-  const { data: instance, error } = await supabase
-    .from('instances')
-    .select('*, doctor:doctors(*)')
-    .eq('doctor_id', id)
-    .single();
-
-  if (error || !instance) {
-    return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 });
-  }
-
-  if (!instance.uazapi_token) {
-    return NextResponse.json({
-      status: 'disconnected',
-      message: 'Token Uazapi não configurado',
-      configured: false,
-    });
-  }
-
   try {
+    const { id } = await params;
+    await requireDoctorAccess(id);
+
+    const supabase = await createServiceClient();
+
+    const { data: instance, error } = await supabase
+      .from('instances')
+      .select('*, doctor:doctors(*)')
+      .eq('doctor_id', id)
+      .single();
+
+    if (error || !instance) {
+      return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 });
+    }
+
+    if (!instance.uazapi_token) {
+      return NextResponse.json({
+        status: 'disconnected',
+        message: 'Token Uazapi não configurado',
+        configured: false,
+      });
+    }
+
     const client = new UazapiClient(instance.uazapi_base_url, instance.uazapi_token);
     const response = await client.getStatus();
     const status = normalizeConnectionStatus(response);
     const qrcode = extractQrCode(response);
+    const pairingCode = extractPairingCode(response);
 
     await supabase
       .from('instances')
@@ -55,12 +61,16 @@ export async function GET(
 
     return NextResponse.json({
       status,
+      rawStatus: extractRawStatus(response),
       qrcode,
-      pairingCode: response.pairingCode,
+      pairingCode,
       configured: true,
       lastCheck: new Date().toISOString(),
     });
   } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     return NextResponse.json({
       status: 'disconnected',
       error: err instanceof Error ? err.message : 'Erro ao consultar Uazapi',

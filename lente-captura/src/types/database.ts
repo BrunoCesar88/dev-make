@@ -13,11 +13,16 @@ export interface Doctor {
   instance_name: string;
   name: string;
   phone: string | null;
+  tenant_slug: string | null;
   manager_id: string | null;
   spreadsheet_id: string | null;
   spreadsheet_url: string | null;
   sheet_gid: string | null;
   bio_link: string | null;
+  bio_phrase: string | null;
+  site_phrase: string | null;
+  manychat_phrase: string | null;
+  social_selling_phrase: string | null;
   lead_enabled: boolean;
   status: DoctorStatus;
   api_provider: string;
@@ -25,6 +30,50 @@ export interface Doctor {
   updated_at: string;
   manager?: Manager;
   instance?: Instance;
+  tracking?: DoctorTracking;
+}
+
+export interface DoctorTracking {
+  doctor_id: string;
+  meta_pixel_id: string | null;
+  meta_access_token: string | null;
+  meta_ads_access_token: string | null;
+  meta_ads_account_id: string | null;
+  meta_test_event_code: string | null;
+  ga4_measurement_id: string | null;
+  ga4_api_secret: string | null;
+  encharge_api_key: string | null;
+  google_ads_customer_id: string | null;
+  google_ads_conversion_action_id: string | null;
+  google_ads_refresh_token: string | null;
+  google_ads_developer_token: string | null;
+  google_ads_login_customer_id: string | null;
+  google_ads_client_id: string | null;
+  google_ads_client_secret: string | null;
+  landing_base_url: string | null;
+  tracker_project_url: string | null;
+  conversion_on_status: string;
+  meta_enabled: boolean;
+  ga4_enabled: boolean;
+  encharge_enabled: boolean;
+  google_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConversionEvent {
+  id: string;
+  doctor_id: string;
+  lead_id: string | null;
+  platform: 'meta' | 'google';
+  event_name: string;
+  event_id: string | null;
+  trigger_status: string | null;
+  success: boolean;
+  skipped_reason: string | null;
+  response_status: number | null;
+  response_body: string | null;
+  created_at: string;
 }
 
 export interface Instance {
@@ -48,12 +97,48 @@ export interface Lead {
   message_id: string | null;
   chat_id: string | null;
   source: string;
+  status: string | null;
+  fields: Record<string, unknown> | null;
   synced_to_sheets: boolean;
   sheets_sync_error: string | null;
   raw_payload: Record<string, unknown> | null;
   received_at: string;
   created_at: string;
+  updated_at: string | null;
   doctor?: Doctor;
+}
+
+export interface ColumnDefinition {
+  id: string;
+  key: string;
+  label: string;
+  column_type: string;
+  display_order: number;
+  is_required: boolean;
+  is_system: boolean;
+  status_options: string[] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Profile {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: 'admin' | 'doctor' | 'secretary';
+  doctor_id: string | null;
+  is_active: boolean;
+}
+
+export interface AuditLog {
+  id: string;
+  user_email: string | null;
+  user_role: string | null;
+  action: string;
+  field_key: string | null;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: string;
 }
 
 export interface UazapiStatusResponse {

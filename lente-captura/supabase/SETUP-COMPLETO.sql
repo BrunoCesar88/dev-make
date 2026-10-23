@@ -193,10 +193,15 @@ INSERT INTO column_definitions (key, label, column_type, display_order, is_requi
   ('data', 'Data', 'date', 1, true, true, NULL),
   ('nome', 'Nome', 'text', 2, false, true, NULL),
   ('telefone', 'Telefone', 'phone', 3, true, true, NULL),
-  ('mensagem', 'Mensagem', 'notes', 4, false, true, NULL),
-  ('status', 'Status', 'status', 5, true, true, '["Novo","Em contato","Agendado","Compareceu","Não compareceu","Perdido"]'::jsonb),
-  ('origem', 'Origem', 'text', 6, false, true, NULL),
-  ('observacoes', 'Observações', 'notes', 7, false, false, NULL)
+  ('convenio', 'Convênio', 'text', 4, false, true, NULL),
+  ('canais', 'Canais', 'text', 5, false, true, NULL),
+  ('status', 'Status', 'status', 6, true, true, '["AGUARDANDO RESPOSTA","EM ATENDIMENTO","SUCESSO","DESCARTADO","DESMARCOU"]'::jsonb),
+  ('agendamento', 'Agendamento', 'text', 7, false, true, NULL),
+  ('compareceu', 'Compareceu?', 'text', 8, false, true, NULL),
+  ('procedimento', 'Qual procedimento?', 'text', 9, false, true, NULL),
+  ('valor_procedimento', 'Valor Procedimento', 'number', 10, false, true, NULL),
+  ('observacao', 'Observação', 'notes', 11, false, true, NULL),
+  ('anuncio', 'Anúncio', 'text', 12, false, true, NULL)
 ON CONFLICT (key) DO NOTHING;
 
 CREATE TRIGGER column_definitions_updated_at

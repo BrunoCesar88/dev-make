@@ -97,9 +97,59 @@ export class UazapiAdminClient {
       'disconnected'
     ).toLowerCase();
 
-    if (raw.includes('connected') && !raw.includes('dis')) return 'connected';
-    if (raw.includes('connecting')) return 'connecting';
+    if (raw.includes('disconnected') || raw === 'close' || raw === 'closed') {
+      return 'disconnected';
+    }
     if (raw.includes('hibernat')) return 'hibernated';
+    if (raw === 'connected' || raw === 'open') return 'connected';
+    if (raw.includes('connecting') || raw === 'pairing') return 'connecting';
+    if (raw.includes('connected') && !raw.includes('dis')) return 'connected';
     return 'disconnected';
+  }
+
+  async createInstance(
+    name: string,
+    systemName?: string
+  ): Promise<{ token: string; name: string }> {
+    const response = await fetch(`${this.baseUrl}/instance/init`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        admintoken: this.adminToken,
+        Authorization: `Bearer ${this.adminToken}`,
+      },
+      body: JSON.stringify({
+        name,
+        systemName: systemName || name,
+      }),
+    });
+
+    const data = (await response.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
+
+    if (!response.ok) {
+      throw new Error(
+        (data.message as string) ||
+          (data.error as string) ||
+          `Falha ao criar instância: HTTP ${response.status}`
+      );
+    }
+
+    const token =
+      (data.token as string) ||
+      (data.apikey as string) ||
+      (data.instanceToken as string) ||
+      ((data.instance as Record<string, unknown>)?.token as string);
+
+    if (!token) {
+      throw new Error('Instância criada, mas token não retornado pela Uazapi');
+    }
+
+    return {
+      token,
+      name: (data.name as string) || name,
+    };
   }
 }
